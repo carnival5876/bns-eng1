@@ -1,0 +1,12 @@
+node_modules/
+build/
+server/node_modules/
+.env
+server/.env
+
+# local caches
+.cache/
+
+# OS/editor
+Thumbs.db
+.DS_Store

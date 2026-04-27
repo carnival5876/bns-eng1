@@ -1,0 +1,2 @@
+ALTER TABLE products
+ADD COLUMN specs_json LONGTEXT NULL AFTER type;
