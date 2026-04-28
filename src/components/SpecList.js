@@ -14,6 +14,51 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL
 const JSON_HEADERS = {
     'Content-Type': 'application/json'
 };
+const ADJUSTER_SPEC_TITLES = [
+    'PCB ver.',
+    'Micom ver.',
+    'LCD',
+    '터치 가스켓',
+    '터치IC',
+    '사출',
+    '플레이트',
+    '환기',
+    '에어컨',
+    '커넥터',
+];
+const CONTROLLER_SPEC_TITLES = [
+    'PCB ver.',
+    'Micom ver.',
+    'TRANS, SMPS',
+    '홈넷',
+    '보일러',
+    '에어컨',
+    '누수',
+    '구동기 전압',
+    '구동기 사양',
+    '비상 스위치',
+    '커넥터',
+];
+const toSpecTitleByType = (type, index) => {
+    if (type === 'controller') {
+        return CONTROLLER_SPEC_TITLES[index] || `사양${index + 1}`;
+    }
+    return ADJUSTER_SPEC_TITLES[index] || `사양${index + 1}`;
+};
+const normalizeSpecsByType = (type, specs = []) => {
+    let nonFullIndex = 0;
+    return specs.map((spec) => {
+        if (spec.fullWidth) {
+            return { ...spec };
+        }
+        const next = {
+            ...spec,
+            title: toSpecTitleByType(type, nonFullIndex),
+        };
+        nonFullIndex += 1;
+        return next;
+    });
+};
 
 const SpecList = ({
     models = [],
@@ -32,6 +77,7 @@ const SpecList = ({
     currentUserName = '',
     allowPendingExpand = false,
     showReviewMeta = false,
+    renderCollapsedExtra,
 }) => {
     const [expandedModelId, setExpandedModelId] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -190,12 +236,13 @@ const SpecList = ({
 
         setEditingModelId(model.id);
         setExpandedModelId(model.id);
+        const nextSpecs = normalizeSpecsByType(model.type, model.specs || []);
         setEditingDraft({
             id: model.id,
             siteName: model.siteName,
             name: model.name,
             type: model.type,
-            specs: (model.specs || []).map((spec) => ({ ...spec }))
+            specs: nextSpecs,
         });
     };
 
@@ -328,7 +375,11 @@ const SpecList = ({
 
             const firstFullWidthIndex = prev.specs.findIndex((spec) => spec.fullWidth);
             const specCount = prev.specs.filter((spec) => !spec.fullWidth).length;
-            const newSpec = { title: `사양${specCount + 1}`, details: '', fullWidth: false };
+            const newSpec = {
+                title: toSpecTitleByType(prev.type, specCount),
+                details: '',
+                fullWidth: false
+            };
 
             if (firstFullWidthIndex === -1) {
                 return { ...prev, specs: [...prev.specs, newSpec] };
@@ -486,6 +537,11 @@ const SpecList = ({
                             </div>
                         )}
                     </div>
+                    {typeof renderCollapsedExtra === 'function' && expandedModelId !== model.id && (
+                        <div className="model-collapsed-extra">
+                            {renderCollapsedExtra(model)}
+                        </div>
+                    )}
                     {expandedModelId === model.id && (
                         <>
                             {(() => {

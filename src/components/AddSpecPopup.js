@@ -8,19 +8,41 @@ import {
     parseSpecFileListValue,
 } from '../utils/specFiles';
 
+const ADJUSTER_SPEC_TITLES = [
+    'PCB ver.',
+    'Micom ver.',
+    'LCD',
+    '터치 가스켓',
+    '터치IC',
+    '사출',
+    '플레이트',
+    '환기',
+    '에어컨',
+    '커넥터',
+];
+const CONTROLLER_SPEC_TITLES = [
+    'PCB ver.',
+    'Micom ver.',
+    'TRANS, SMPS',
+    '홈넷',
+    '보일러',
+    '에어컨',
+    '누수',
+    '구동기 전압',
+    '구동기 사양',
+    '비상 스위치',
+    '커넥터',
+];
+const toSpecTitleByType = (activeType, index) => {
+    if (activeType === 'controller') {
+        return CONTROLLER_SPEC_TITLES[index] || `사양${index + 1}`;
+    }
+    return ADJUSTER_SPEC_TITLES[index] || `사양${index + 1}`;
+};
 const createSpecTemplates = (activeType) => [
-    { title: '사양1' },
-    { title: '사양2' },
-    { title: '사양3' },
-    { title: '사양4' },
-    { title: '사양5' },
-    { title: '사양6' },
-    { title: '사양7' },
-    { title: '사양8' },
-    { title: '사양9' },
-    { title: '사양10' },
-    { title: '사양11' },
-    { title: '사양12' },
+    ...Array.from({ length: 12 }, (_, index) => ({
+        title: toSpecTitleByType(activeType, index)
+    })),
     { title: activeType === 'controller' ? '제어기 이미지' : '조절기 이미지', fullWidth: true },
     { title: '펌웨어 파일', fullWidth: true },
     { title: '비고', fullWidth: true }
@@ -36,7 +58,11 @@ const AddSpecPopup = ({ onAddModel, onClose, type = "조절기", activeType = 'a
     useEffect(() => {
         setSpecs((prevSpecs) => {
             const nextTemplates = createSpecTemplates(activeType).filter((template) => template.fullWidth);
-            const normalSpecs = prevSpecs.filter((spec) => !spec.fullWidth);
+            const prevNormalSpecs = prevSpecs.filter((spec) => !spec.fullWidth);
+            const normalSpecs = prevNormalSpecs.map((spec, index) => ({
+                ...spec,
+                title: toSpecTitleByType(activeType, index),
+            }));
             const fullWidthSpecs = nextTemplates.map((template) => {
                 const matchingTitle = template.title === '펌웨어 파일' || template.title === '비고'
                     ? template.title
@@ -111,7 +137,10 @@ const AddSpecPopup = ({ onAddModel, onClose, type = "조절기", activeType = 'a
         setSpecs((prevSpecs) => {
             const firstFullWidthIndex = prevSpecs.findIndex((spec) => spec.fullWidth);
             const specCount = prevSpecs.filter((spec) => !spec.fullWidth).length;
-            const newSpec = { title: `사양${specCount + 1}`, details: '' };
+            const newSpec = {
+                title: toSpecTitleByType(activeType, specCount),
+                details: ''
+            };
 
             if (firstFullWidthIndex === -1) {
                 return [...prevSpecs, newSpec];

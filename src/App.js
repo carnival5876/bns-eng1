@@ -74,6 +74,9 @@ function App() {
     const [logPage, setLogPage] = useState(1);
     const LOG_PAGE_SIZE = 100;
     const [darkMode, setDarkMode] = useState(() => localStorage.getItem('bns-dark-mode') === 'true');
+    const [appToastMessage, setAppToastMessage] = useState('');
+    const [appToastVisible, setAppToastVisible] = useState(false);
+    const [appToastType, setAppToastType] = useState('success');
 
     const toggleDarkMode = (checked) => {
         setDarkMode(checked);
@@ -95,11 +98,20 @@ function App() {
 
     const canReviewList = !!currentUser?.permissions?.canReviewList;
     const canEditProduct = !!currentUser?.permissions?.canEditProduct;
-    const canManageAsRepair = !!currentUser?.permissions?.canManageAsRepair;
     const canViewDetail = !!currentUser?.permissions?.canViewDetail;
     const canDownloadFirmware = !!currentUser?.permissions?.canDownloadFirmware;
     const canManagePermissions = !!currentUser?.permissions?.canManagePermissions;
     const canViewLogs = !!currentUser?.permissions?.canViewLogs || canManagePermissions;
+    const showAppToast = (message, type = 'success') => {
+        setAppToastType(type);
+        setAppToastMessage(message);
+        setAppToastVisible(true);
+        window.setTimeout(() => {
+            setAppToastVisible(false);
+            window.setTimeout(() => setAppToastMessage(''), 250);
+        }, 1600);
+    };
+
 
     const loadProducts = async () => {
         try {
@@ -478,7 +490,6 @@ function App() {
             canRegisterProduct: !!permissions.canRegisterProduct,
             canReviewList: !!permissions.canReviewList,
             canEditProduct: !!permissions.canEditProduct,
-            canManageAsRepair: !!permissions.canManageAsRepair,
             canViewDetail: !!permissions.canViewDetail,
             canDownloadFirmware: !!permissions.canDownloadFirmware,
             canManagePermissions: !!permissions.canManagePermissions,
@@ -576,7 +587,7 @@ function App() {
             }
 
             await Promise.all([loadProducts(), loadPendingReviewProducts(), loadMailboxUnreadCount()]);
-            window.alert('승인 완료되었습니다.');
+            showAppToast('승인 완료되었습니다.', 'success');
         } catch (error) {
             setPendingReviewError('승인 처리에 실패했습니다. 잠시 후 다시 시도해주세요.');
         }
@@ -796,7 +807,6 @@ function App() {
         canReviewList: '검토 권한',
         canViewLogs: '로그 관리 권한',
         canEditProduct: '리스트 수정 권한',
-        canManageAsRepair: 'A/S 수리 관리 권한',
         canViewDetail: '세부사항 열람 권한',
         canDownloadFirmware: '펌웨어 다운로드 권한',
         canRegisterProduct: '제품 등록 권한',
@@ -989,9 +999,6 @@ function App() {
                         )}
                         <h3>메뉴</h3>
                         <button className={`sidebar-menu-button ${activePage === 'list' ? 'active' : ''}`} onClick={() => setActivePage('list')}>리스트</button>
-                        {canManageAsRepair && (
-                            <button className={`sidebar-menu-button ${activePage === 'as' ? 'active' : ''}`} onClick={() => setActivePage('as')}>A/S 수리 관리</button>
-                        )}
                         <button className={`sidebar-menu-button ${activePage === 'message' ? 'active' : ''}`} onClick={() => setActivePage('message')}>
                             알림
                             {mailboxUnreadCount > 0 && <span className="sidebar-mail-unread-dot" />}
@@ -1149,12 +1156,6 @@ function App() {
                             </div>
                         )}
 
-                        {activePage === 'as' && canManageAsRepair && (
-                            <div className="placeholder-page">
-                                <h3>A/S 수리 관리</h3>
-                                <p>추가 예정 페이지입니다.</p>
-                            </div>
-                        )}
 
                         {activePage === 'settings' && (
                             <div className="placeholder-page settings-page">
@@ -1195,7 +1196,6 @@ function App() {
                                                         <th>검토 권한</th>
                                                         <th>로그 관리</th>
                                                         <th>리스트 수정</th>
-                                                        <th>A/S 수리 관리</th>
                                                         <th>세부사항 열람</th>
                                                         <th>펌웨어 다운로드</th>
                                                     </tr>
@@ -1231,13 +1231,6 @@ function App() {
                                                                     type="checkbox"
                                                                     checked={!!user.permissions?.canEditProduct}
                                                                     onChange={(e) => updateUserPermission(user.id, 'canEditProduct', e.target.checked)}
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={!!user.permissions?.canManageAsRepair}
-                                                                    onChange={(e) => updateUserPermission(user.id, 'canManageAsRepair', e.target.checked)}
                                                                 />
                                                             </td>
                                                             <td>
@@ -1366,6 +1359,11 @@ function App() {
                             <button className="button button-cancel" onClick={closeRejectModal} disabled={isRejecting}>취소</button>
                         </div>
                     </div>
+                </div>
+            )}
+            {appToastMessage && (
+                <div className={`toast-popup ${appToastVisible ? 'show' : ''} ${appToastType === 'success' ? 'toast-success' : 'toast-error'}`}>
+                    {appToastMessage}
                 </div>
             )}
         </div>

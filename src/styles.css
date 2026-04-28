@@ -285,6 +285,7 @@ h1 {
     padding: 20px;
 }
 
+
 .modal-backdrop {
     position: fixed;
     inset: 0;
@@ -603,6 +604,11 @@ h1 {
     display: flex;
     gap: 8px;
     align-items: center;
+}
+
+.model-collapsed-extra {
+    margin-top: -4px;
+    margin-bottom: 10px;
 }
 
 .review-pending-label {
@@ -1416,6 +1422,7 @@ body.dark-mode {
     background: #111111;
     color: #d4dbe7;
 }
+
 
 .dark-mode .search-input,
 .dark-mode .spec-filter-input,

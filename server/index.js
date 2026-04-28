@@ -26,7 +26,6 @@ const DEFAULT_PERMISSIONS = {
   canRegisterProduct: false,
   canReviewList: false,
   canEditProduct: false,
-  canManageAsRepair: false,
   canViewDetail: false,
   canDownloadFirmware: false,
   canManagePermissions: false,
@@ -41,7 +40,6 @@ const normalizePermissions = (permissions) => {
     // Backward compatibility: old permission rows may not include canReviewList.
     canReviewList: !!safe.canReviewList || !!safe.canManagePermissions,
     canEditProduct: !!safe.canEditProduct,
-    canManageAsRepair: !!safe.canManageAsRepair,
     canViewDetail: !!safe.canViewDetail,
     canDownloadFirmware: !!safe.canDownloadFirmware,
     canManagePermissions: !!safe.canManagePermissions,
@@ -449,7 +447,6 @@ app.post('/api/login', async (req, res) => {
           canRegisterProduct: true,
           canReviewList: true,
           canEditProduct: true,
-          canManageAsRepair: true,
           canViewDetail: true,
           canDownloadFirmware: true,
           canManagePermissions: true,
