@@ -164,6 +164,221 @@ h1 {
     object-fit: contain;
 }
 
+.korea-map-panel {
+    width: 88%;
+    margin: 0 auto 12px;
+    background: #fff;
+    border: 1px solid #d9e1e8;
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.korea-map-panel h3 {
+    margin: 0 0 6px;
+}
+
+.korea-map-help {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: #667085;
+}
+
+.korea-map-level-wrap {
+    display: block;
+    animation: korea-map-zoom-in 0.28s ease;
+}
+
+.korea-map-level {
+    border: 1px solid #e3e8ef;
+    border-radius: 8px;
+    padding: 8px;
+    background: #fbfdff;
+}
+
+.korea-map-level.single {
+    max-width: 560px;
+    margin: 0 auto;
+}
+
+.korea-map-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    justify-content: center;
+}
+
+.korea-map-back-button {
+    border: 1px solid #d0d7e2;
+    border-radius: 6px;
+    background: #fff;
+    color: #344054;
+    font-size: 12px;
+    padding: 4px 8px;
+    cursor: pointer;
+}
+
+@keyframes korea-map-zoom-in {
+    from {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.korea-map-level h4 {
+    margin: 0 0 8px;
+    font-size: 14px;
+}
+
+.korea-svg-map {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.korea-svg-frame {
+    fill: #f8fafc;
+    stroke: #d9e1e8;
+}
+
+.korea-svg-terrain {
+    fill: #eef2f7;
+    opacity: 0.85;
+    stroke: #d8e0ea;
+    stroke-width: 1.2;
+}
+
+.kakao-map-wrap {
+    margin-top: 12px;
+}
+
+.kakao-map-canvas {
+    width: 100%;
+    height: 460px;
+    border: 1px solid #d9e1e8;
+    border-radius: 10px;
+    overflow: hidden;
+    animation: map-canvas-zoom-in 0.32s ease;
+}
+
+@keyframes map-canvas-zoom-in {
+    from {
+        opacity: 0.2;
+        transform: scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.kakao-region-bubble {
+    min-width: 78px;
+    min-height: 70px;
+    border-radius: 999px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px 10px;
+    box-sizing: border-box;
+    font-size: 12px;
+    font-weight: 700;
+    color: #1f2a37;
+    background: rgba(255, 255, 255, 0.92);
+    border: 2px solid #2f80ed;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+    white-space: normal;
+    user-select: none;
+    animation: korea-map-zoom-in 0.25s ease;
+}
+
+.kakao-region-bubble .bubble-name {
+    line-height: 1.1;
+}
+
+.kakao-region-bubble .bubble-count {
+    margin-top: 2px;
+    line-height: 1;
+    font-size: 13px;
+}
+
+.kakao-region-bubble.zero-count {
+    opacity: 0.52;
+}
+
+.kakao-region-bubble.gugun {
+    border-color: #1f9d55;
+}
+
+.kakao-region-bubble.dong {
+    border-color: #d97706;
+    cursor: default;
+}
+
+.kakao-region-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 0;
+    padding: 0;
+    border-radius: 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: #1f2a37;
+    background: transparent;
+    border: none;
+    text-align: center;
+}
+
+.kakao-region-label.zero-count {
+    opacity: 0.52;
+}
+
+.kakao-map-error {
+    padding: 10px 12px;
+    border: 1px solid #f5c2c7;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #8a1c1c;
+    font-size: 13px;
+}
+
+.korea-map-chip-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.korea-map-chip {
+    border: 1px solid #d0d7e2;
+    border-radius: 6px;
+    background: #fff;
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.korea-map-chip.active {
+    border-color: #2f80ed;
+    background: #eaf3ff;
+}
+
+.korea-map-chip.static {
+    cursor: default;
+}
+
 .search-filters-left {
     display: contents;
 }
@@ -323,6 +538,31 @@ h1 {
 
 .mailbox-page-header h3 {
     margin: 0;
+}
+
+.mailbox-header-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.mailbox-select-all-text {
+    border: none;
+    background: none;
+    padding: 0;
+    font-size: 12px;
+    color: #2f80ed;
+    cursor: pointer;
+}
+
+.mailbox-select-all-text:disabled {
+    color: #98a2b3;
+    cursor: default;
+}
+
+.mailbox-select-all-text:hover:not(:disabled) {
+    text-decoration: underline;
 }
 
 .modal-header {
@@ -830,6 +1070,14 @@ h1 {
         width: 100%;
     }
 
+    .korea-map-panel {
+        width: 96%;
+    }
+
+    .korea-map-level.single {
+        max-width: 100%;
+    }
+
 }
 
 .pagination-wrap {
@@ -918,10 +1166,18 @@ h1 {
 .form-switch-buttons {
     display: flex;
     gap: 10px;
+    flex-wrap: nowrap;
+    align-items: center;
 }
 
 .form-switch-buttons .button {
     margin: 0;
+}
+
+.region-select {
+    min-width: 112px;
+    max-width: 132px;
+    height: 36px;
 }
 
 .button-active {
@@ -946,6 +1202,14 @@ h1 {
     display: flex;
     flex-direction: column;
     gap: 6px;
+}
+
+.spec-edit-top-row {
+    margin-bottom: 12px;
+}
+
+.spec-edit-fields-grid .field-label {
+    font-size: 16px;
 }
 
 .form-field.full-width {
@@ -1047,6 +1311,10 @@ h1 {
         align-items: flex-start;
         gap: 10px;
     }
+
+    .form-switch-buttons {
+        flex-wrap: wrap;
+    }
 }
 
 .spec-grid {
@@ -1058,6 +1326,76 @@ h1 {
     border-right: none;
     border-bottom: none;
     background: #fff;
+}
+
+.spec-view-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 10px;
+    margin-top: 12px;
+}
+
+.spec-view-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.spec-view-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.spec-view-item > label {
+    font-size: 16px;
+    font-weight: 700;
+    color: #222;
+}
+
+.spec-view-item .field-input,
+.spec-view-item .spec-file-view {
+    border: 1px solid #ccd3db;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.spec-view-value {
+    min-height: 32px;
+    border: 1px solid #ccd3db;
+    border-radius: 6px;
+    background: #fff;
+    padding: 6px 8px;
+    font-size: 13px;
+    color: #1f2a37;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.spec-view-item .field-input {
+    height: 38px;
+    padding: 0 10px;
+}
+
+.spec-view-file-box {
+    border: 1px solid #ccd3db;
+    border-radius: 8px;
+    background: #fff;
+    padding: 8px;
+}
+
+.spec-view-file-box .spec-image-grid {
+    gap: 8px;
+}
+
+.spec-view-file-box .spec-upload-preview {
+    height: 92px;
+}
+
+.spec-view-file-box .spec-firmware-row-wrap {
+    padding: 6px;
+    border: 1px solid #d9e1e8;
+    border-radius: 6px;
+    background: #f8fafc;
 }
 
 .spec-input {
@@ -1101,7 +1439,31 @@ h1 {
     flex: 1;
 }
 
+.spec-input select {
+    padding: 10px;
+    border: none;
+    border-radius: 0;
+    width: 100%;
+    box-sizing: border-box;
+    background: transparent;
+    flex: 1;
+    font-size: 14px;
+    color: #1f2a37;
+    cursor: pointer;
+}
+
+.spec-input select:disabled {
+    cursor: default;
+    opacity: 0.92;
+}
+
 .spec-input input:focus {
+    outline: 2px solid #7ab8ff;
+    outline-offset: -2px;
+    background: #f8fbff;
+}
+
+.spec-input select:focus {
     outline: 2px solid #7ab8ff;
     outline-offset: -2px;
     background: #f8fbff;
@@ -1287,6 +1649,10 @@ h1 {
     .spec-grid {
         grid-template-columns: repeat(3, minmax(120px, 1fr));
     }
+
+    .spec-view-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 560px) {
@@ -1432,6 +1798,103 @@ body.dark-mode {
     border-color: #3c4251;
 }
 
+.dark-mode .korea-map-panel {
+    background: #111111;
+    border-color: #3c4251;
+}
+
+.dark-mode .korea-map-help {
+    color: #b8c2d6;
+}
+
+.dark-mode .korea-map-level {
+    background: #1a1f29;
+    border-color: #3c4251;
+}
+
+.dark-mode .korea-map-back-button {
+    background: #22262e;
+    border-color: #3c4251;
+    color: #d4dbe7;
+}
+
+.dark-mode .kakao-map-canvas {
+    border-color: #3c4251;
+}
+
+.dark-mode .kakao-region-bubble {
+    background: rgba(34, 38, 46, 0.92);
+    color: #e6edf8;
+    border-color: #7eb8ff;
+}
+
+.dark-mode .kakao-region-bubble.zero-count {
+    opacity: 0.46;
+}
+
+.dark-mode .kakao-region-bubble.gugun {
+    border-color: #6ee7b7;
+}
+
+.dark-mode .kakao-region-bubble.dong {
+    border-color: #fbbf24;
+}
+
+.dark-mode .kakao-region-label {
+    color: #e6edf8;
+    background: transparent;
+    border: none;
+}
+
+.dark-mode .kakao-region-label.zero-count {
+    opacity: 0.46;
+}
+
+.dark-mode .kakao-map-error {
+    border-color: #7a3030;
+    background: #3a2020;
+    color: #f08080;
+}
+
+.dark-mode .korea-svg-frame {
+    fill: #111111;
+    stroke: #3c4251;
+}
+
+.dark-mode .korea-svg-terrain {
+    fill: #1b2230;
+    stroke: #344055;
+}
+
+.dark-mode .korea-svg-region rect {
+    fill: #22262e;
+    stroke: #3c4251;
+}
+
+.dark-mode .korea-svg-region.active rect {
+    fill: #243042;
+    stroke: #7eb8ff;
+}
+
+.dark-mode .korea-svg-label {
+    fill: #c5cdd9;
+}
+
+.dark-mode .korea-svg-count {
+    fill: #e6edf8;
+}
+
+.dark-mode .korea-map-chip {
+    background: #22262e;
+    border-color: #3c4251;
+    color: #d4dbe7;
+}
+
+.dark-mode .korea-map-chip.active {
+    border-color: #7eb8ff;
+    background: #243042;
+}
+
 .dark-mode .permission-table th {
     background: #161616;
     color: #a0aabb;
@@ -1513,6 +1976,33 @@ body.dark-mode {
     border-color: #3c4251;
 }
 
+.dark-mode .spec-view-item > label {
+    color: #e6edf8;
+}
+
+.dark-mode .spec-view-item .field-input,
+.dark-mode .spec-view-item .spec-file-view {
+    background: #2a2f3b;
+    color: #d4dbe7;
+    border-color: #3c4251;
+}
+
+.dark-mode .spec-view-value {
+    background: #2a2f3b;
+    color: #d4dbe7;
+    border-color: #3c4251;
+}
+
+.dark-mode .spec-view-file-box {
+    background: #2a2f3b;
+    border-color: #3c4251;
+}
+
+.dark-mode .spec-view-file-box .spec-firmware-row-wrap {
+    background: #1f2430;
+    border-color: #3c4251;
+}
+
 .dark-mode .spec-input {
     border-right-color: #3c4251;
     border-bottom-color: #3c4251;
@@ -1532,6 +2022,115 @@ body.dark-mode {
 .dark-mode .spec-input input:focus {
     background: #272c38;
     outline-color: #4a7abf;
+}
+
+.dark-mode .spec-input select {
+    background: #22262e;
+    color: #d4dbe7;
+}
+
+.dark-mode .spec-input select:focus {
+    background: #272c38;
+    outline-color: #4a7abf;
+}
+
+.dropdown-manage-help {
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: #475467;
+    line-height: 1.5;
+}
+
+.dropdown-manage-add-form {
+    margin-bottom: 20px;
+    padding: 14px;
+    border: 1px solid #e3e8ef;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.dropdown-manage-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.dropdown-manage-row:last-child {
+    margin-bottom: 0;
+}
+
+.dropdown-manage-label {
+    min-width: 72px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #2f3d4a;
+}
+
+.dropdown-manage-title-select {
+    flex: 1;
+    min-width: 200px;
+    max-width: 420px;
+}
+
+.dropdown-manage-list-wrap h4 {
+    margin: 0 0 10px;
+    font-size: 15px;
+    color: #2f3d4a;
+}
+
+.dropdown-manage-empty {
+    color: #667085;
+    font-size: 14px;
+}
+
+.dropdown-manage-option-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dropdown-manage-option-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid #e3e8ef;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.dropdown-manage-option-text {
+    font-size: 14px;
+    word-break: break-all;
+}
+
+.dark-mode .dropdown-manage-help {
+    color: #b8c2d6;
+}
+
+.dark-mode .dropdown-manage-add-form {
+    background: #1a1f29;
+    border-color: #3c4251;
+}
+
+.dark-mode .dropdown-manage-label,
+.dark-mode .dropdown-manage-list-wrap h4 {
+    color: #d4dbe7;
+}
+
+.dark-mode .dropdown-manage-empty {
+    color: #7a8a9e;
+}
+
+.dark-mode .dropdown-manage-option-item {
+    background: #121212;
+    border-color: #3c4251;
 }
 
 .dark-mode .edit-top-row input {
@@ -1667,6 +2266,14 @@ body.dark-mode {
 
 .dark-mode .mailbox-item-time {
     color: #b8c2d6;
+}
+
+.dark-mode .mailbox-select-all-text {
+    color: #7eb8ff;
+}
+
+.dark-mode .mailbox-select-all-text:disabled {
+    color: #7a8a9e;
 }
 
 .dark-mode .form-page {

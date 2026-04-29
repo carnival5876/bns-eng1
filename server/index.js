@@ -152,6 +152,10 @@ const parseReviewPrevSnapshotJson = (value) => {
       siteName: parsed.siteName || '',
       productName: parsed.productName || '',
       type: parsed.type || '',
+      sido: parsed.sido || '',
+      gugun: parsed.gugun || '',
+      dong: parsed.dong || '',
+      detailAddress: parsed.detailAddress || '',
       specs: normalizeSpecs(parsed.specs),
     };
   } catch (error) {
@@ -226,6 +230,10 @@ const buildProductDiff = (previousProduct, nextProduct) => {
   pushChange('siteName', '현장명', previousProduct?.siteName, nextProduct?.siteName);
   pushChange('productName', '모델명', previousProduct?.productName, nextProduct?.productName);
   pushChange('type', '타입', previousProduct?.type, nextProduct?.type);
+  pushChange('sido', '시/도', previousProduct?.sido, nextProduct?.sido);
+  pushChange('gugun', '구/군', previousProduct?.gugun, nextProduct?.gugun);
+  pushChange('dong', '동/읍/면', previousProduct?.dong, nextProduct?.dong);
+  pushChange('detailAddress', '상세주소', previousProduct?.detailAddress, nextProduct?.detailAddress);
 
   const prevSpecs = buildSpecsMap(previousProduct?.specs || []);
   const nextSpecs = buildSpecsMap(nextProduct?.specs || []);
@@ -306,6 +314,10 @@ const ensureProductsApprovalColumns = async () => {
   await ensureColumn('review_prev_snapshot_json', 'ALTER TABLE products ADD COLUMN review_prev_snapshot_json LONGTEXT NULL AFTER review_diff_json');
   await ensureColumn('approved_at', 'ALTER TABLE products ADD COLUMN approved_at TIMESTAMP NULL DEFAULT NULL AFTER review_prev_snapshot_json');
   await ensureColumn('pending_requester_name', 'ALTER TABLE products ADD COLUMN pending_requester_name VARCHAR(100) NULL AFTER approved_at');
+  await ensureColumn('sido', "ALTER TABLE products ADD COLUMN sido VARCHAR(100) NULL AFTER site_name");
+  await ensureColumn('gugun', "ALTER TABLE products ADD COLUMN gugun VARCHAR(100) NULL AFTER sido");
+  await ensureColumn('dong', "ALTER TABLE products ADD COLUMN dong VARCHAR(100) NULL AFTER gugun");
+  await ensureColumn('detail_address', "ALTER TABLE products ADD COLUMN detail_address VARCHAR(255) NULL AFTER dong");
 };
 
 const ensureMailboxesTable = async () => {
@@ -320,6 +332,20 @@ const ensureMailboxesTable = async () => {
       INDEX idx_user_mailboxes_recipient_name (recipient_name),
       INDEX idx_user_mailboxes_is_read (is_read),
       INDEX idx_user_mailboxes_created_at (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+  );
+};
+
+const ensureSpecDropdownOptionsTable = async () => {
+  await pool.query(
+    `CREATE TABLE IF NOT EXISTS spec_dropdown_options (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      spec_title VARCHAR(200) NOT NULL,
+      option_value VARCHAR(255) NOT NULL,
+      sort_order INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_spec_option (spec_title, option_value),
+      INDEX idx_spec_dropdown_title (spec_title)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
   );
 };
@@ -390,6 +416,24 @@ const requesterCanReviewLists = async (requesterName) => {
 
   const permissions = await loadRequesterPermissions(requesterName);
   return !!permissions?.canReviewList;
+};
+
+const requesterCanManageSpecDropdowns = async (requesterName) => {
+  const loginId = process.env.LOGIN_ID || 'admin';
+  if (!requesterName) {
+    return false;
+  }
+
+  if (requesterName === loginId) {
+    return true;
+  }
+
+  const permissions = await loadRequesterPermissions(requesterName);
+  if (!permissions) {
+    return false;
+  }
+
+  return !!(permissions.canEditProduct || permissions.canRegisterProduct || permissions.canManagePermissions);
 };
 
 app.post('/api/login', async (req, res) => {
@@ -662,11 +706,95 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+app.get('/api/spec-dropdown-options', async (req, res) => {
+  try {
+    await ensureSpecDropdownOptionsTable();
+    const [rows] = await pool.query(
+      'SELECT id, spec_title AS specTitle, option_value AS optionValue, sort_order AS sortOrder FROM spec_dropdown_options ORDER BY spec_title ASC, sort_order ASC, option_value ASC'
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ message: '드롭다운 목록 조회에 실패했습니다.', error: error.message });
+  }
+});
+
+app.post('/api/spec-dropdown-options', async (req, res) => {
+  const requesterName = String(req.body?.requesterName || '').trim();
+  const specTitle = String(req.body?.specTitle || '').trim();
+  const optionValue = String(req.body?.optionValue || '').trim();
+
+  if (!requesterName) {
+    res.status(400).json({ message: 'requesterName이 필요합니다.' });
+    return;
+  }
+  if (!specTitle || !optionValue) {
+    res.status(400).json({ message: 'specTitle과 optionValue는 필수입니다.' });
+    return;
+  }
+
+  try {
+    const allowed = await requesterCanManageSpecDropdowns(requesterName);
+    if (!allowed) {
+      res.status(403).json({ message: '드롭다운 관리 권한이 없습니다.' });
+      return;
+    }
+    await ensureSpecDropdownOptionsTable();
+    const [result] = await pool.query(
+      'INSERT INTO spec_dropdown_options (spec_title, option_value, sort_order) VALUES (?, ?, 0)',
+      [specTitle, optionValue]
+    );
+    res.status(201).json({
+      ok: true,
+      id: result.insertId,
+      specTitle,
+      optionValue,
+      sortOrder: 0,
+    });
+  } catch (error) {
+    if (error && error.code === 'ER_DUP_ENTRY') {
+      res.status(409).json({ message: '동일한 사양 항목·옵션 값이 이미 있습니다.' });
+      return;
+    }
+    res.status(500).json({ message: '드롭다운 옵션 추가에 실패했습니다.', error: error.message });
+  }
+});
+
+app.delete('/api/spec-dropdown-options/:id', async (req, res) => {
+  const requesterName = String(req.body?.requesterName || '').trim();
+  const id = Number(req.params.id);
+
+  if (!requesterName) {
+    res.status(400).json({ message: 'requesterName이 필요합니다.' });
+    return;
+  }
+  if (!Number.isInteger(id) || id <= 0) {
+    res.status(400).json({ message: '올바른 id가 필요합니다.' });
+    return;
+  }
+
+  try {
+    const allowed = await requesterCanManageSpecDropdowns(requesterName);
+    if (!allowed) {
+      res.status(403).json({ message: '드롭다운 관리 권한이 없습니다.' });
+      return;
+    }
+    await ensureSpecDropdownOptionsTable();
+    const [result] = await pool.query('DELETE FROM spec_dropdown_options WHERE id = ?', [id]);
+    if (!Number(result.affectedRows)) {
+      res.status(404).json({ message: '해당 옵션을 찾을 수 없습니다.' });
+      return;
+    }
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ message: '드롭다운 옵션 삭제에 실패했습니다.', error: error.message });
+  }
+});
+
 app.get('/api/products', async (req, res) => {
   try {
     await ensureProductsApprovalColumns();
     const [rows] = await pool.query(
-      `SELECT p.id, p.site_name, p.product_name, p.type, p.created_at, p.specs_json,
+      `SELECT p.id, p.site_name, p.sido, p.gugun, p.dong, p.detail_address, p.product_name, p.type, p.created_at, p.specs_json,
               p.review_status, p.review_event_type, p.review_diff_json, p.approved_at, p.pending_requester_name
        FROM products p
        ORDER BY p.id DESC`
@@ -675,6 +803,10 @@ app.get('/api/products', async (req, res) => {
     const products = rows.map((row) => ({
       id: row.id,
       siteName: row.site_name,
+      sido: row.sido || '',
+      gugun: row.gugun || '',
+      dong: row.dong || '',
+      detailAddress: row.detail_address || '',
       name: row.product_name,
       type: row.type,
       createdAt: row.created_at,
@@ -721,7 +853,7 @@ app.post('/api/logs/event', async (req, res) => {
 });
 
 app.post('/api/products', async (req, res) => {
-  const { siteName, productName, type, specs, actorName } = req.body;
+  const { siteName, productName, type, specs, sido, gugun, dong, detailAddress, actorName } = req.body;
 
   const validationMessage = validateProductPayload({ siteName, productName, type });
   if (validationMessage) {
@@ -735,9 +867,9 @@ app.post('/api/products', async (req, res) => {
     const specsJson = JSON.stringify(safeSpecs);
 
     const [productResult] = await pool.query(
-      `INSERT INTO products (site_name, product_name, type, specs_json, review_status, review_event_type, review_diff_json, approved_at)
-       VALUES (?, ?, ?, ?, 'pending', 'create', ?, NULL)`,
-      [siteName, productName, type, specsJson, JSON.stringify([])]
+      `INSERT INTO products (site_name, sido, gugun, dong, detail_address, product_name, type, specs_json, review_status, review_event_type, review_diff_json, approved_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'create', ?, NULL)`,
+      [siteName, sido || '', gugun || '', dong || '', detailAddress || '', productName, type, specsJson, JSON.stringify([])]
     );
     await pool.query('UPDATE products SET pending_requester_name = ? WHERE id = ?', [actorName || null, productResult.insertId]);
 
@@ -747,7 +879,11 @@ app.post('/api/products', async (req, res) => {
       targetType: 'product',
       targetId: productResult.insertId,
       description: '제품 등록',
-      metadata: { siteName, productName, type },
+      metadata: {
+        siteName, productName, type,
+        sido: sido || '', gugun: gugun || '', dong: dong || '',
+        detailAddress: detailAddress || '',
+      },
     });
 
     res.status(201).json({ id: productResult.insertId });
@@ -758,7 +894,7 @@ app.post('/api/products', async (req, res) => {
 
 app.put('/api/products/:id', async (req, res) => {
   const id = Number(req.params.id);
-  const { siteName, productName, type, specs, actorName } = req.body;
+  const { siteName, productName, type, specs, sido, gugun, dong, detailAddress, actorName } = req.body;
 
   if (!id || Number.isNaN(id)) {
     res.status(400).json({ message: '제품 ID가 올바르지 않습니다.' });
@@ -776,7 +912,7 @@ app.put('/api/products/:id', async (req, res) => {
     const safeSpecs = normalizeSpecs(specs);
     const specsJson = JSON.stringify(safeSpecs);
     const [prevRows] = await pool.query(
-      'SELECT site_name, product_name, type, specs_json FROM products WHERE id = ? LIMIT 1',
+      'SELECT site_name, sido, gugun, dong, detail_address, product_name, type, specs_json FROM products WHERE id = ? LIMIT 1',
       [id]
     );
 
@@ -787,12 +923,20 @@ app.put('/api/products/:id', async (req, res) => {
 
     const previousProduct = {
       siteName: prevRows[0].site_name,
+      sido: prevRows[0].sido || '',
+      gugun: prevRows[0].gugun || '',
+      dong: prevRows[0].dong || '',
+      detailAddress: prevRows[0].detail_address || '',
       productName: prevRows[0].product_name,
       type: prevRows[0].type,
       specs: parseSpecsJson(prevRows[0].specs_json),
     };
     const nextProduct = {
       siteName,
+      sido: sido || '',
+      gugun: gugun || '',
+      dong: dong || '',
+      detailAddress: detailAddress || '',
       productName,
       type,
       specs: safeSpecs,
@@ -802,11 +946,11 @@ app.put('/api/products/:id', async (req, res) => {
 
     const [result] = await pool.query(
       `UPDATE products
-       SET site_name = ?, product_name = ?, type = ?, specs_json = ?,
+       SET site_name = ?, sido = ?, gugun = ?, dong = ?, detail_address = ?, product_name = ?, type = ?, specs_json = ?,
            review_status = 'pending', review_event_type = 'update',
            review_diff_json = ?, review_prev_snapshot_json = ?, approved_at = NULL, pending_requester_name = ?
        WHERE id = ?`,
-      [siteName, productName, type, specsJson, JSON.stringify(reviewDiff), previousSnapshotJson, actorName || null, id]
+      [siteName, sido || '', gugun || '', dong || '', detailAddress || '', productName, type, specsJson, JSON.stringify(reviewDiff), previousSnapshotJson, actorName || null, id]
     );
 
     if (result.affectedRows === 0) {
@@ -838,7 +982,11 @@ app.put('/api/products/:id', async (req, res) => {
       targetType: 'product',
       targetId: id,
       description: '제품 수정',
-      metadata: { siteName, productName, type },
+      metadata: {
+        siteName, productName, type,
+        sido: sido || '', gugun: gugun || '', dong: dong || '',
+        detailAddress: detailAddress || '',
+      },
     });
 
     res.json({ ok: true });
@@ -909,6 +1057,7 @@ app.get('/api/review/pending-products', async (req, res) => {
     await ensureProductsApprovalColumns();
     const [rows] = await pool.query(
       `SELECT id, site_name, product_name, type, specs_json, review_event_type, review_diff_json, created_at, pending_requester_name
+              , sido, gugun, dong, detail_address
        FROM products
        WHERE review_status = 'pending'
        ORDER BY id DESC`
@@ -917,6 +1066,10 @@ app.get('/api/review/pending-products', async (req, res) => {
     const pendingProducts = rows.map((row) => ({
       id: row.id,
       siteName: row.site_name,
+      sido: row.sido || '',
+      gugun: row.gugun || '',
+      dong: row.dong || '',
+      detailAddress: row.detail_address || '',
       name: row.product_name,
       type: row.type,
       specs: parseSpecsJson(row.specs_json),
@@ -1048,7 +1201,7 @@ app.put('/api/review/products/:id/reject', async (req, res) => {
 
     await ensureProductsApprovalColumns();
     const [rows] = await pool.query(
-      `SELECT site_name, product_name, type, pending_requester_name, review_event_type, review_prev_snapshot_json
+      `SELECT site_name, sido, gugun, dong, detail_address, product_name, type, pending_requester_name, review_event_type, review_prev_snapshot_json
        FROM products
        WHERE id = ? AND review_status = 'pending'
        LIMIT 1`,
@@ -1071,12 +1224,16 @@ app.put('/api/review/products/:id/reject', async (req, res) => {
       if (previousSnapshot) {
         await pool.query(
           `UPDATE products
-           SET site_name = ?, product_name = ?, type = ?, specs_json = ?,
+           SET site_name = ?, sido = ?, gugun = ?, dong = ?, detail_address = ?, product_name = ?, type = ?, specs_json = ?,
                review_status = 'approved', review_event_type = NULL, review_diff_json = NULL, review_prev_snapshot_json = NULL,
                approved_at = NOW(), pending_requester_name = NULL
            WHERE id = ?`,
           [
             previousSnapshot.siteName || '',
+            previousSnapshot.sido || '',
+            previousSnapshot.gugun || '',
+            previousSnapshot.dong || '',
+            previousSnapshot.detailAddress || '',
             previousSnapshot.productName || '',
             previousSnapshot.type || rows[0].type || 'adjuster',
             JSON.stringify(previousSnapshot.specs || []),

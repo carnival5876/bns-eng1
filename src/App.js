@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import SpecList from './components/SpecList';
 import AddSpecPopup from './components/AddSpecPopup';
+import DropdownManagePage from './components/DropdownManagePage';
+import KoreaRegionMap from './components/KoreaRegionMap';
 import './styles.css';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL
@@ -77,6 +79,7 @@ function App() {
     const [appToastMessage, setAppToastMessage] = useState('');
     const [appToastVisible, setAppToastVisible] = useState(false);
     const [appToastType, setAppToastType] = useState('success');
+    const [specDropdownOptions, setSpecDropdownOptions] = useState([]);
 
     const toggleDarkMode = (checked) => {
         setDarkMode(checked);
@@ -98,10 +101,12 @@ function App() {
 
     const canReviewList = !!currentUser?.permissions?.canReviewList;
     const canEditProduct = !!currentUser?.permissions?.canEditProduct;
+    const canRegisterProduct = !!currentUser?.permissions?.canRegisterProduct;
     const canViewDetail = !!currentUser?.permissions?.canViewDetail;
     const canDownloadFirmware = !!currentUser?.permissions?.canDownloadFirmware;
     const canManagePermissions = !!currentUser?.permissions?.canManagePermissions;
     const canViewLogs = !!currentUser?.permissions?.canViewLogs || canManagePermissions;
+    const canManageSpecDropdowns = canEditProduct || canRegisterProduct || canManagePermissions;
     const showAppToast = (message, type = 'success') => {
         setAppToastType(type);
         setAppToastMessage(message);
@@ -129,14 +134,31 @@ function App() {
         }
     };
 
-    useEffect(() => {
-        if (isAuthenticated) {
-            loadProducts();
+    const loadSpecDropdownOptions = async () => {
+        try {
+            const response = await fetch(`${API_BASE}/spec-dropdown-options`);
+            if (!response.ok) {
+                throw new Error('드롭다운 목록 조회 실패');
+            }
+            const data = await response.json();
+            setSpecDropdownOptions(Array.isArray(data) ? data : []);
+        } catch (error) {
+            setSpecDropdownOptions([]);
         }
+    };
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            return;
+        }
+        Promise.all([loadProducts(), loadSpecDropdownOptions()]);
     }, [isAuthenticated]);
 
     useEffect(() => {
-        if (isAuthenticated) {
+        if (!isAuthenticated) {
+            return;
+        }
+        if (activePage === 'list' || activePage === 'review') {
             loadProducts();
         }
     }, [isAuthenticated, activePage]);
@@ -239,6 +261,7 @@ function App() {
         setSearchQuery('');
         setSpecFilters(createInitialSpecFilters());
         setListTypeFilters({ adjuster: true, controller: true });
+        setSpecDropdownOptions([]);
         localStorage.removeItem('bns-auth');
         localStorage.removeItem('bns-user');
     };
@@ -266,6 +289,10 @@ function App() {
                     productName: model.name,
                     type,
                     specs: model.specs,
+                    sido: model.sido || '',
+                    gugun: model.gugun || '',
+                    dong: model.dong || '',
+                    detailAddress: model.detailAddress || '',
                     actorName: currentUser?.name || null,
                 })
             });
@@ -390,6 +417,21 @@ function App() {
             return prev.filter((id) => id !== itemId);
         });
     };
+    const handleToggleSelectAllMailbox = () => {
+        const selectableIds = mailboxItems
+            .filter((item) => item.title !== '리스트 승인 거부')
+            .map((item) => item.id);
+        if (selectableIds.length === 0) {
+            return;
+        }
+        const isAllSelected = selectableIds.every((id) => selectedMailboxIds.includes(id));
+        setSelectedMailboxIds(isAllSelected ? [] : selectableIds);
+    };
+    const selectableMailboxIds = mailboxItems
+        .filter((item) => item.title !== '리스트 승인 거부')
+        .map((item) => item.id);
+    const isAllMailboxSelected = selectableMailboxIds.length > 0
+        && selectableMailboxIds.every((id) => selectedMailboxIds.includes(id));
 
     const handleDeleteSelectedMailboxItems = async () => {
         if (!currentUser?.name || selectedMailboxIds.length === 0) {
@@ -537,6 +579,10 @@ function App() {
                     productName: model.name,
                     type: model.type,
                     specs: model.specs,
+                    sido: model.sido || '',
+                    gugun: model.gugun || '',
+                    dong: model.dong || '',
+                    detailAddress: model.detailAddress || '',
                     actorName: currentUser?.name || null,
                 })
             });
@@ -679,6 +725,10 @@ function App() {
         }
         if (activePage === 'logs' && canViewLogs) {
             await loadLogs();
+            return;
+        }
+        if (activePage === 'dropdowns' && canManageSpecDropdowns) {
+            await loadSpecDropdownOptions();
             return;
         }
 
@@ -1006,6 +1056,9 @@ function App() {
                         {canReviewList && (
                             <button className={`sidebar-menu-button ${activePage === 'review' ? 'active' : ''}`} onClick={() => setActivePage('review')}>리스트 승인 관리</button>
                         )}
+                        {canManageSpecDropdowns && (
+                            <button className={`sidebar-menu-button ${activePage === 'dropdowns' ? 'active' : ''}`} onClick={() => setActivePage('dropdowns')}>드롭다운 관리</button>
+                        )}
                         <button className={`sidebar-menu-button ${activePage === 'settings' ? 'active' : ''}`} onClick={() => setActivePage('settings')}>설정</button>
                         {canViewLogs && (
                             <button className={`sidebar-menu-button ${activePage === 'logs' ? 'active' : ''}`} onClick={() => setActivePage('logs')}>로그 관리</button>
@@ -1026,6 +1079,7 @@ function App() {
                                         alt="B&S Engineering"
                                     />
                                 </div>
+                                <KoreaRegionMap models={models} />
                                 <div className="search-bar-wrap">
                                     <div className="search-filters-left">
                                         {specFilters.map((filter, index) => (
@@ -1086,6 +1140,7 @@ function App() {
                                         setRetryEditRequest((prev) => (prev?.key === key ? null : prev));
                                     }}
                                     currentUserName={currentUser?.name || ''}
+                                    specDropdownOptions={specDropdownOptions}
                                 />
                             </>
                         )}
@@ -1109,6 +1164,7 @@ function App() {
                                         currentUserName={currentUser?.name || ''}
                                         allowPendingExpand
                                         showReviewMeta
+                                        specDropdownOptions={specDropdownOptions}
                                     />
                                 )}
                             </div>
@@ -1118,9 +1174,19 @@ function App() {
                             <div className="placeholder-page mailbox-page">
                                 <div className="mailbox-page-header">
                                     <h3>알림</h3>
-                                    <button className="button button-cancel" onClick={handleDeleteSelectedMailboxItems} disabled={isDeletingMailboxItems}>
-                                        {isDeletingMailboxItems ? '삭제중...' : '삭제'}
-                                    </button>
+                                    <div className="mailbox-header-actions">
+                                        <button className="button button-cancel" onClick={handleDeleteSelectedMailboxItems} disabled={isDeletingMailboxItems}>
+                                            {isDeletingMailboxItems ? '삭제중...' : '삭제'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="mailbox-select-all-text"
+                                            onClick={handleToggleSelectAllMailbox}
+                                            disabled={isMailboxLoading || mailboxItems.length === 0}
+                                        >
+                                            {isAllMailboxSelected ? '전체 해제' : '전체 선택'}
+                                        </button>
+                                    </div>
                                 </div>
                                 {mailboxError && <div className="error-box">{mailboxError}</div>}
                                 {isMailboxLoading ? (
@@ -1156,6 +1222,15 @@ function App() {
                             </div>
                         )}
 
+
+                        {activePage === 'dropdowns' && canManageSpecDropdowns && (
+                            <DropdownManagePage
+                                currentUserName={currentUser?.name || ''}
+                                specDropdownOptions={specDropdownOptions}
+                                onOptionsChange={setSpecDropdownOptions}
+                                showAppToast={showAppToast}
+                            />
+                        )}
 
                         {activePage === 'settings' && (
                             <div className="placeholder-page settings-page">
@@ -1335,7 +1410,8 @@ function App() {
                         onClose={closeAddPage} 
                         activeType={activeFormType}
                         onSwitchType={openAddPage}
-                        type={activeFormType === 'adjuster' ? '조절기' : '제어기'} 
+                        type={activeFormType === 'adjuster' ? '조절기' : '제어기'}
+                        specDropdownOptions={specDropdownOptions}
                     />
                 )}
             </div>

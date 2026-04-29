@@ -7,38 +7,10 @@ import {
     isUploadSpecTitle,
     parseSpecFileListValue,
 } from '../utils/specFiles';
+import { toSpecTitleByType } from '../constants/specTitles';
+import { SIDO_OPTIONS, getDongOptions, getGugunOptions } from '../constants/koreaRegions';
+import SpecDropdownSelect from './SpecDropdownSelect';
 
-const ADJUSTER_SPEC_TITLES = [
-    'PCB ver.',
-    'Micom ver.',
-    'LCD',
-    '터치 가스켓',
-    '터치IC',
-    '사출',
-    '플레이트',
-    '환기',
-    '에어컨',
-    '커넥터',
-];
-const CONTROLLER_SPEC_TITLES = [
-    'PCB ver.',
-    'Micom ver.',
-    'TRANS, SMPS',
-    '홈넷',
-    '보일러',
-    '에어컨',
-    '누수',
-    '구동기 전압',
-    '구동기 사양',
-    '비상 스위치',
-    '커넥터',
-];
-const toSpecTitleByType = (activeType, index) => {
-    if (activeType === 'controller') {
-        return CONTROLLER_SPEC_TITLES[index] || `사양${index + 1}`;
-    }
-    return ADJUSTER_SPEC_TITLES[index] || `사양${index + 1}`;
-};
 const createSpecTemplates = (activeType) => [
     ...Array.from({ length: 12 }, (_, index) => ({
         title: toSpecTitleByType(activeType, index)
@@ -48,9 +20,13 @@ const createSpecTemplates = (activeType) => [
     { title: '비고', fullWidth: true }
 ];
 
-const AddSpecPopup = ({ onAddModel, onClose, type = "조절기", activeType = 'adjuster', onSwitchType }) => {
+const AddSpecPopup = ({ onAddModel, onClose, type = "조절기", activeType = 'adjuster', onSwitchType, specDropdownOptions = [] }) => {
     const [productName, setProductName] = useState('');
     const [siteName, setSiteName] = useState('');
+    const [sido, setSido] = useState('');
+    const [gugun, setGugun] = useState('');
+    const [dong, setDong] = useState('');
+    const [detailAddress, setDetailAddress] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [toastVisible, setToastVisible] = useState(false);
     const [specs, setSpecs] = useState(createSpecTemplates(activeType).map((item) => ({ ...item, details: '' })));
@@ -186,7 +162,15 @@ const AddSpecPopup = ({ onAddModel, onClose, type = "조절기", activeType = 'a
         setToastVisible(false);
         setErrorMessage('');
 
-        const isSaved = await onAddModel({ name: productName, siteName: siteName, specs });
+        const isSaved = await onAddModel({
+            name: productName,
+            siteName: siteName,
+            specs,
+            sido,
+            gugun,
+            dong,
+            detailAddress,
+        });
         if (isSaved === false) {
             showErrorToast('저장에 실패했습니다. DB 연결 상태를 확인해주세요.');
             return;
@@ -195,6 +179,10 @@ const AddSpecPopup = ({ onAddModel, onClose, type = "조절기", activeType = 'a
         onClose();
         setProductName('');
         setSiteName('');
+        setSido('');
+        setGugun('');
+        setDong('');
+        setDetailAddress('');
         setSpecs(createSpecTemplates(activeType).map((item) => ({ ...item, details: '' })));
     };
 
@@ -218,6 +206,45 @@ const AddSpecPopup = ({ onAddModel, onClose, type = "조절기", activeType = 'a
                         >
                             제어기
                         </button>
+                        <select
+                            className="field-input region-select"
+                            value={sido}
+                            onChange={(e) => {
+                                setSido(e.target.value);
+                                setGugun('');
+                                setDong('');
+                            }}
+                        >
+                            <option value="">시/도</option>
+                            {SIDO_OPTIONS.map((item) => (
+                                <option key={item} value={item}>{item}</option>
+                            ))}
+                        </select>
+                        <select
+                            className="field-input region-select"
+                            value={gugun}
+                            onChange={(e) => {
+                                setGugun(e.target.value);
+                                setDong('');
+                            }}
+                            disabled={!sido}
+                        >
+                            <option value="">구/군</option>
+                            {getGugunOptions(sido).map((item) => (
+                                <option key={item} value={item}>{item}</option>
+                            ))}
+                        </select>
+                        <select
+                            className="field-input region-select"
+                            value={dong}
+                            onChange={(e) => setDong(e.target.value)}
+                            disabled={!sido || !gugun}
+                        >
+                            <option value="">동/읍/면</option>
+                            {getDongOptions(sido, gugun).map((item) => (
+                                <option key={item} value={item}>{item}</option>
+                            ))}
+                        </select>
                     </div>
                 </div>
                 <div className="form-header-actions">
@@ -250,6 +277,16 @@ const AddSpecPopup = ({ onAddModel, onClose, type = "조절기", activeType = 'a
                                 placeholder="제품명을 입력해주세요."
                             />
                         </div>
+                    </div>
+                    <div className="form-field full-width">
+                        <label className="field-label">상세주소</label>
+                        <input
+                            className="field-input"
+                            type="text"
+                            value={detailAddress}
+                            onChange={(e) => setDetailAddress(e.target.value)}
+                            placeholder="지번주소 또는 도로명 주소를 입력해주세요."
+                        />
                     </div>
 
                     {specs.map((spec, i) => (
@@ -303,12 +340,12 @@ const AddSpecPopup = ({ onAddModel, onClose, type = "조절기", activeType = 'a
                                     })()}
                                 </div>
                             ) : (
-                                <input
+                                <SpecDropdownSelect
                                     className="field-input"
-                                    type="text"
+                                    specTitle={spec.title}
                                     value={spec.details}
-                                    onChange={(e) => updateSpec(i, e.target.value)}
-                                    placeholder={`${spec.title}을 입력해주세요.`}
+                                    onChange={(v) => updateSpec(i, v)}
+                                    options={specDropdownOptions}
                                 />
                             )}
                         </div>

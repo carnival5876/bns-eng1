@@ -7,43 +7,15 @@ import {
     isUploadSpecTitle,
     parseSpecFileListValue,
 } from '../utils/specFiles';
+import { toSpecTitleByType } from '../constants/specTitles';
+import { SIDO_OPTIONS, getDongOptions, getGugunOptions } from '../constants/koreaRegions';
+import SpecDropdownSelect from './SpecDropdownSelect';
 
 const ITEMS_PER_PAGE = 25;
 const API_BASE = process.env.REACT_APP_API_BASE_URL
     || `${window.location.protocol}//${window.location.hostname}:4000/api`;
 const JSON_HEADERS = {
     'Content-Type': 'application/json'
-};
-const ADJUSTER_SPEC_TITLES = [
-    'PCB ver.',
-    'Micom ver.',
-    'LCD',
-    '터치 가스켓',
-    '터치IC',
-    '사출',
-    '플레이트',
-    '환기',
-    '에어컨',
-    '커넥터',
-];
-const CONTROLLER_SPEC_TITLES = [
-    'PCB ver.',
-    'Micom ver.',
-    'TRANS, SMPS',
-    '홈넷',
-    '보일러',
-    '에어컨',
-    '누수',
-    '구동기 전압',
-    '구동기 사양',
-    '비상 스위치',
-    '커넥터',
-];
-const toSpecTitleByType = (type, index) => {
-    if (type === 'controller') {
-        return CONTROLLER_SPEC_TITLES[index] || `사양${index + 1}`;
-    }
-    return ADJUSTER_SPEC_TITLES[index] || `사양${index + 1}`;
 };
 const normalizeSpecsByType = (type, specs = []) => {
     let nonFullIndex = 0;
@@ -78,6 +50,7 @@ const SpecList = ({
     allowPendingExpand = false,
     showReviewMeta = false,
     renderCollapsedExtra,
+    specDropdownOptions = [],
 }) => {
     const [expandedModelId, setExpandedModelId] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -242,6 +215,10 @@ const SpecList = ({
             siteName: model.siteName,
             name: model.name,
             type: model.type,
+            sido: model.sido || '',
+            gugun: model.gugun || '',
+            dong: model.dong || '',
+            detailAddress: model.detailAddress || '',
             specs: nextSpecs,
         });
     };
@@ -575,21 +552,81 @@ const SpecList = ({
                                 );
                             })()}
                             {editingModelId === model.id && (
-                                <div className="edit-top-row">
-                                    <div className="spec-input">
-                                        <label>현장명</label>
+                                <div className="top-required-row spec-edit-top-row">
+                                    <div className="form-field">
+                                        <label className="field-label">현장명</label>
                                         <input
+                                            className="field-input"
                                             type="text"
                                             value={editingDraft?.siteName || ''}
                                             onChange={(e) => updateDraftField('siteName', e.target.value)}
                                         />
                                     </div>
-                                    <div className="spec-input">
-                                        <label>모델명</label>
+                                    <div className="form-field">
+                                        <label className="field-label">모델명</label>
                                         <input
+                                            className="field-input"
                                             type="text"
                                             value={editingDraft?.name || ''}
                                             onChange={(e) => updateDraftField('name', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-field">
+                                        <label className="field-label">시/도</label>
+                                        <select
+                                            className="field-input"
+                                            value={editingDraft?.sido || ''}
+                                            onChange={(e) => {
+                                                updateDraftField('sido', e.target.value);
+                                                updateDraftField('gugun', '');
+                                                updateDraftField('dong', '');
+                                            }}
+                                        >
+                                            <option value="">시/도</option>
+                                            {SIDO_OPTIONS.map((item) => (
+                                                <option key={item} value={item}>{item}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="form-field">
+                                        <label className="field-label">구/군</label>
+                                        <select
+                                            className="field-input"
+                                            value={editingDraft?.gugun || ''}
+                                            onChange={(e) => {
+                                                updateDraftField('gugun', e.target.value);
+                                                updateDraftField('dong', '');
+                                            }}
+                                            disabled={!editingDraft?.sido}
+                                        >
+                                            <option value="">구/군</option>
+                                            {getGugunOptions(editingDraft?.sido || '').map((item) => (
+                                                <option key={item} value={item}>{item}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="form-field">
+                                        <label className="field-label">동/읍/면</label>
+                                        <select
+                                            className="field-input"
+                                            value={editingDraft?.dong || ''}
+                                            onChange={(e) => updateDraftField('dong', e.target.value)}
+                                            disabled={!editingDraft?.sido || !editingDraft?.gugun}
+                                        >
+                                            <option value="">동/읍/면</option>
+                                            {getDongOptions(editingDraft?.sido || '', editingDraft?.gugun || '').map((item) => (
+                                                <option key={item} value={item}>{item}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="form-field full-width">
+                                        <label className="field-label">상세주소</label>
+                                        <input
+                                            className="field-input"
+                                            type="text"
+                                            value={editingDraft?.detailAddress || ''}
+                                            onChange={(e) => updateDraftField('detailAddress', e.target.value)}
+                                            placeholder="지번주소 또는 도로명 주소"
                                         />
                                     </div>
                                 </div>
@@ -627,17 +664,22 @@ const SpecList = ({
                                     요청 유형: {model.reviewEventType === 'create' ? '리스트 등록' : model.reviewEventType === 'delete' ? '리스트 삭제' : '리스트 수정'}
                                 </div>
                             )}
-                            <div className="spec-grid">
+                            <div className={editingModelId === model.id ? 'form-fields-grid spec-edit-fields-grid' : 'spec-view-grid'}>
                             {(editingModelId === model.id ? editingDraft?.specs || [] : model.specs).map((spec, specIndex) => (
-                                <div key={specIndex} className={`spec-input ${spec.fullWidth ? 'full-width' : ''}`}>
-                                    <label>
+                                <div
+                                    key={specIndex}
+                                    className={editingModelId === model.id
+                                        ? `form-field ${spec.fullWidth ? 'full-width' : ''}`
+                                        : `spec-view-item ${spec.fullWidth ? 'full-width' : ''}`}
+                                >
+                                    <label className={editingModelId === model.id ? 'field-label' : ''}>
                                         {showReviewMeta && model.reviewEventType === 'update' && Array.isArray(model.reviewDiff) && model.reviewDiff.some((change) => change.field === `spec:${spec.title}`) && (
                                             <span className="spec-changed-dot" />
                                         )}
                                         {spec.title}
                                     </label>
                                     {isUploadSpecTitle(spec.title) ? (
-                                        <div className="spec-file-view">
+                                        <div className={`spec-file-view ${editingModelId === model.id ? '' : 'spec-view-file-box'}`}>
                                             {(() => {
                                                 const fileInfos = parseSpecFileListValue(spec.details);
                                                 return (
@@ -736,14 +778,15 @@ const SpecList = ({
                                                 ));
                                             })()}
                                         </div>
-                                    ) : (
+                                    ) : editingModelId === model.id ? (
                                         <>
-                                            <input
-                                                type="text"
+                                            <SpecDropdownSelect
+                                                className="field-input"
+                                                specTitle={spec.title}
                                                 value={spec.details}
-                                                readOnly={editingModelId !== model.id}
-                                                onChange={(e) => updateDraftSpec(specIndex, e.target.value)}
-                                                placeholder={`사양 ${spec.title}`}
+                                                onChange={(v) => updateDraftSpec(specIndex, v)}
+                                                options={specDropdownOptions}
+                                                disabled={false}
                                             />
                                             {showReviewMeta && model.reviewEventType === 'update' && (() => {
                                                 const change = (model.reviewDiff || []).find((item) => item.field === `spec:${spec.title}`);
@@ -757,6 +800,8 @@ const SpecList = ({
                                                 );
                                             })()}
                                         </>
+                                    ) : (
+                                        <div className="spec-view-value">{spec.details || '-'}</div>
                                     )}
                                 </div>
                             ))}
